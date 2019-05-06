@@ -28,6 +28,8 @@
             display: flex;
         }
     </style>
+
+    <script src="d3.js"></script>
 </head>
 
 <body data-gr-c-s-loaded="true">
@@ -43,4 +45,49 @@
         </div>
     </div>
 </body>
+
+<script>
+    let store = {};
+
+    function loadData() {
+        let promise = d3.csv("routes.csv");
+        return promise.then(routes => {
+            store.routes = routes;
+        return store;
+        });
+    }
+
+    function showData() {
+        let routes = store.routes;
+        // Compute the number of routes per airline.
+        let airlines = groupByAirline(routes);
+        console.log(airlines);
+    }
+
+    function groupByAirline(data) {
+        //Iterate over each route, producing a dictionary where the keys are the airlines IDs and the values are the properties of the airline
+        let result = data.reduce((result, d) => {
+            let currentData = result[d.AirlineID] || {
+                "AirlineID": d.AirlineID,
+                "AirlineName": d.AirlineName,
+                "Count": 0
+            }
+
+            currentData.Count += 1;
+            result[d.AirlineID] = currentData;
+
+            return result;
+        }, {});
+
+        //Convert result into a list
+        result = Object.keys(result).map(key => result[key])
+        result.sort(function (d1, d2) {
+            return d3.descending(d1.Count, d2.Count);            
+        });
+
+        return result;
+    }
+
+    loadData().then(showData);
+</script>
 </html>
