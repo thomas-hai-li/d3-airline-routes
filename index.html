@@ -47,8 +47,6 @@
 </body>
 
 <script>
-    let store = {};
-
     function loadData() {
         let promise = d3.csv("routes.csv");
         return promise.then(routes => {
@@ -62,6 +60,8 @@
         // Compute the number of routes per airline.
         let airlines = groupByAirline(routes);
         console.log(airlines);
+        // Draw airlines barchart
+        drawAirlinesChart(airlines);
     }
 
     function groupByAirline(data) {
@@ -88,6 +88,92 @@
         return result;
     }
 
+    function drawAirlinesChart(airlines) {
+        let config = getAirlinesChartConfig();
+        let scales = getAirlinesChartScales(airlines, config);
+        drawBarsAirlinesChart(airlines, scales, config);
+        drawAxesAirlinesChart(airlines, scales, config);
+    }
+
+    function getAirlinesChartConfig() {
+        // Sets barchart SVG dimensions and returns an object with the dim of the actual barchart
+        let width = 350;
+        let height = 400;
+        let margin = {
+            top: 10,
+            bottom: 50,
+            left: 130,
+            right: 10
+        }
+        //The body is the area that will be occupied by the bars.
+        let bodyHeight = height - margin.top - margin.bottom;
+        let bodyWidth = width - margin.right - margin.left;
+
+        //Container is the barchart SVG
+        let container = d3.select("#AirlinesChart");
+        container.attr("width", width);
+        container.attr("height", height);
+
+        return { width, height, margin, bodyHeight, bodyWidth, container }
+    }
+
+    function getAirlinesChartScales(airlines, config) {
+            let { bodyWidth, bodyHeight } = config;
+            let maximumCount = d3.max(airlines, d => d.Count);
+
+            let xScale = d3.scaleLinear()
+                .domain([0, maximumCount])
+                .range([0, bodyWidth])
+
+            let yScale = d3.scaleBand()
+                .domain(airlines.map(a => a.AirlineName)) //The domain is the list of airlines names
+                .range([0, bodyHeight])
+                .padding(0.2)
+
+            return { xScale, yScale }
+    }
+
+    function drawBarsAirlinesChart(airlines, scales, config) {
+        let { margin, container } = config;
+        let { xScale, yScale } = scales;
+
+        let body = container.append("g")
+            .style("transform",
+                `translate(${margin.left}px,${margin.top}px)`)
+
+        let bars = body.selectAll(".bar").data(airlines)
+
+        //Draw a rect tag for each airline
+        bars.enter().append("rect")
+            .attr("height", yScale.bandwidth())
+            .attr("y", (d) => yScale(d.AirlineName))
+            .attr("width", (d) => xScale(d.Count))
+            .attr("fill", "#2a5599")
+    }
+
+    function drawAxesAirlinesChart(airlines, scales, config) {
+        let { xScale, yScale } = scales;
+        let { container, margin, height } = config;
+        let axisX = d3.axisBottom(xScale)
+            .ticks(5)
+
+        container.append("g")
+            .style("transform",
+                `translate(${margin.left}px,${height - margin.bottom}px)`
+            )
+            .call(axisX)
+
+        let axisY = d3.axisLeft(yScale);
+
+        container.append("g")
+            .style("transform",
+                `translate(${margin.left}px,${margin.top}px)`
+            )
+            .call(axisY)
+        //TODO: Append a g tag to the container, translate it based on the margins and call the axisY axis to draw the left axis.
+    }
+
+    let store = {};
     loadData().then(showData);
 </script>
 </html>
