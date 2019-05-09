@@ -1,4 +1,9 @@
-<!-- Coursera NYU - Information Visualization: Programming with D3.js -->
+<!-- 
+Name: Thomas Hai Li
+Start Date: May 4, 2019
+Course: NYU - Information Visualization: Programming with D3.js
+-->
+
 <!DOCTYPE html>
 <html class="gr__d3c33hcgiwev3_cloudfront_net">
 <head>
@@ -66,6 +71,9 @@
         // Draw airlines barchart and draw base map
         drawAirlinesChart(airlines);
         drawMap(store.geoJSON);
+
+        let airports = groupByAirport(store.routes);
+        drawAirports(airports);
     }
 
     function groupByAirline(data) {
@@ -97,6 +105,12 @@
         let scales = getAirlinesChartScales(airlines, config);
         drawBarsAirlinesChart(airlines, scales, config);
         drawAxesAirlinesChart(airlines, scales, config);
+    }
+
+    function drawMap(geoJson) {
+        let config = getMapConfig();
+        let projection = getMapProjection(config)
+        drawBaseMap(config.container, geoJson.features, projection)
     }
 
     function getAirlinesChartConfig() {
@@ -212,10 +226,60 @@
             .attr("fill", "#eee")
     }
 
-    function drawMap(geoJson) {
+    function groupByAirport(data) {
+
+        // Transform the list (data) into a object where each key points to a unique airport
+        let result = data.reduce((result, d) => {
+
+            // Create a new object for the current destination airport only if it is the first time we are iterating over it
+            let currentDest = result[d.DestAirportID] || {
+                "AirportID": d.DestAirportID,
+                "Airport": d.DestAirport,
+                "Latitude": +d.DestLatitude,
+                "Longitude": +d.DestLongitude,
+                "City": d.DestCity,
+                "Country": d.DestCountry,
+                "Count": 0
+            }
+            currentDest.Count += 1
+            result[d.DestAirportID] = currentDest
+
+            // Same as above, but for the current source airport
+            let currentSource = result[d.SourceAirportID] || {
+                "AirportID": d.SourceAirportID,
+                "Airport": d.SourceAirport,
+                "Latitude": +d.SourceLatitude,
+                "Longitude": +d.SourceLongitude,
+                "City": d.SourceCity,
+                "Country": d.SourceCountry,
+                "Count": 0
+            }
+            currentSource.Count += 1
+            result[d.SourceAirportID] = currentSource
+
+            return result
+        }, {})
+
+        // Transform the object result into a list.
+        result = Object.keys(result).map(key => result[key])
+        return result
+    }
+
+    function drawAirports(airports) {
+        // Draw airport location on top of the base map
         let config = getMapConfig();
-        let projection = getMapProjection(config)
-        drawBaseMap(config.container, geoJson.features, projection)
+        let projection = getMapProjection(config);
+        let container = config.container;
+
+        let circles = container.selectAll("circle")
+        
+        circles.data(airports)
+            .enter()
+            .append("circle")
+            .attr("r", 1)
+            .attr("cx", d => projection([d.Longitude, d.Latitude])[0])
+            .attr("cy", d => projection([d.Longitude, d.Latitude])[1])
+            .attr("fill", "#2a5599")
     }
 
     let store = {};
