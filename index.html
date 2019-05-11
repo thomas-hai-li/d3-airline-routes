@@ -71,7 +71,7 @@ Course: NYU - Information Visualization: Programming with D3.js
         // Draw airlines barchart and draw base map
         drawAirlinesChart(airlines);
         drawMap(store.geoJSON);
-
+        // Draw airports on  top of base map 
         let airports = groupByAirport(store.routes);
         drawAirports(airports);
     }
@@ -159,7 +159,7 @@ Course: NYU - Information Visualization: Programming with D3.js
             .style("transform",
                 `translate(${margin.left}px,${margin.top}px)`)
 
-        let bars = body.selectAll(".bar").data(airlines)
+        let bars = body.selectAll(".bar").data(airlines);
 
         //Draw a rect tag for each airline
         bars.enter().append("rect")
@@ -167,6 +167,14 @@ Course: NYU - Information Visualization: Programming with D3.js
             .attr("y", (d) => yScale(d.AirlineName))
             .attr("width", (d) => xScale(d.Count))
             .attr("fill", "#2a5599")
+            .on("mouseenter", function(d) {
+                drawRoutes(d.AirlineID);
+                this.style.fill = "#992a5b";
+            })
+            .on("mouseleave", function(d) {
+                drawRoutes(null);
+                this.style.fill = "#2a5599";
+            })
     }
 
     function drawAxesAirlinesChart(airlines, scales, config) {
@@ -282,6 +290,30 @@ Course: NYU - Information Visualization: Programming with D3.js
             .attr("fill", "#2a5599")
     }
 
+    function drawRoutes(airlineID) {
+        let routes = store.routes;
+        let projection = store.mapProjection;
+        let container = d3.select("#Map");
+        let selectedRoutes = routes.filter(function(route) {
+            return route.AirlineID === airlineID;
+        })
+        
+        let bindedData = container.selectAll("line")
+            .data(selectedRoutes, d => d.ID) // ID helps correctly identify which routes have been added or removed
+        
+        bindedData.enter()
+            .append("line")
+            .attr("x1", d => projection([d.SourceLongitude, d.SourceLatitude])[0])
+            .attr("y1", d => projection([d.SourceLongitude, d.SourceLatitude])[1])
+            .attr("x2", d => projection([d.DestLongitude, d.DestLatitude])[0])
+            .attr("y2", d => projection([d.DestLongitude, d.DestLatitude])[1])
+            .attr("stroke", "#992a2a")
+            .attr("opacity", 0.1)
+        
+        bindedData.exit().remove();
+    }
+
+    // Store: global variable to store data for easy access
     let store = {};
     loadData().then(showData);
 </script>
